@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>珠心算练习</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation; /* 优化手机触摸 */
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .problem {
+            font-size: 24px;
+            margin: 10px 0;
+            text-align: center; /* 整体居中 */
+        }
+        .problem span {
+            display: inline-block;
+            width: 40px; /* 固定宽度确保对齐 */
+            text-align: right; /* 右对齐数字，负号不影响 */
+        }
+        input[type="number"], input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px;
+            width: 100px;
+            -webkit-appearance: none; /* 移除手机默认样式 */
+            -moz-appearance: textfield; /* 兼容 Firefox */
+        }
+        button {
+            padding: 12px 24px; /* 按钮放大 */
+            font-size: 18px; /* 按钮字体放大 */
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            touch-action: manipulation;
+            display: block; /* 电脑端按钮在输入框下方 */
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 48px; /* iOS 触摸区域规范 */
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #shareButton {
+            background-color: #1a73e8; /* 分享按钮蓝色 */
+        }
+        #shareButton:hover {
+            background-color: #1557b0;
+        }
+        #submitButton, #startButton {
+            /* 确保按钮样式一致 */
+        }
+        #result, #setupError {
+            font-size: 18px;
+            margin-top: 10px;
+            color: red;
+        }
+        #encouragement {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px; /* 手机上表格字体稍小 */
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .keyboard {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 10px auto;
+            max-width: 300px;
+        }
+        .keyboard button {
+            padding: 15px;
+            font-size: 20px;
+            background-color: #666666; /* 数字键深灰色 */
+            color: #ffffff; /* 白色字体 */
+            border: none;
+            border-radius: 5px;
+            min-height: 48px; /* iOS 触摸区域规范 */
+        }
+        .keyboard button:active {
+            background-color: #555555; /* 数字键激活更深灰色 */
+        }
+        .keyboard .zero-button {
+            grid-column: 2; /* 0 居中 */
+        }
+        .keyboard .delete-button {
+            grid-column: 3; /* 删除键在0右边 */
+            background-color: #ff0000; /* 红色 */
+        }
+        .keyboard .delete-button:active {
+            background-color: #cc0000; /* 激活深红色 */
+        }
+        #shareArea {
+            background-color: white;
+            padding: 10px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .browser-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            max-width: 300px;
+        }
+        @media (max-width: 600px) {
+            .problem {
+                font-size: 20px;
+            }
+            input[type="number"], input[type="text"] {
+                font-size: 16px;
+                width: 80px;
+            }
+            button {
+                font-size: 16px; /* 手机上按钮字体稍小 */
+                padding: 10px 30px; /* 手机上按钮加长 */
+            }
+            #submitButton, #startButton {
+                width: 240px; /* 与三个数字键等宽 */
+            }
+            .keyboard {
+                display: grid; /* 手机上显示键盘 */
+            }
+            #encouragement {
+                font-size: 16px;
+            }
+            .footer, .browser-hint {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>珠心算练习（一位三笔）</h1>
+        <div id="setup" style="display: block;">
+            <label for="userName">姓名：</label>
+            <input type="text" id="userName" placeholder="请输入姓名">
+            <br>
+            <label for="numQuestions">选择题目数量：</label>
+            <select id="numQuestions">
+                <option value="10">10</option>
+                <option value="40">40</option>
+                <option value="80">80</option>
+                <option value="120">120</option>
+                <option value="160">160</option>
+                <option value="200">200</option>
+                <option value="240">240</option>
+            </select>
+            <button id="startButton" type="button" onclick="startPractice()" ontouchstart="">开始练习</button>
+            <div id="setupError"></div>
+            <div class="browser-hint">iPhone 用户请在 Safari 或 Chrome 浏览器中打开此页面以获得最佳体验（长按链接选择“在 Safari 中打开”）</div>
+        </div>
+        <div id="practice" style="display: none;">
+            <h2>第 <span id="currentQuestion">1</span> 题</h2>
+            <div id="problem" class="problem"></div>
+            <input type="number" id="answer" placeholder="输入答案">
+            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交</button>
+            <div class="keyboard" id="keyboard">
+                <button onclick="inputKey('7')" ontouchstart="">7</button>
+                <button onclick="inputKey('8')" ontouchstart="">8</button>
+                <button onclick="inputKey('9')" ontouchstart="">9</button>
+                <button onclick="inputKey('4')" ontouchstart="">4</button>
+                <button onclick="inputKey('5')" ontouchstart="">5</button>
+                <button onclick="inputKey('6')" ontouchstart="">6</button>
+                <button onclick="inputKey('1')" ontouchstart="">1</button>
+                <button onclick="inputKey('2')" ontouchstart="">2</button>
+                <button onclick="inputKey('3')" ontouchstart="">3</button>
+                <button class="zero-button" onclick="inputKey('0')" ontouchstart="">0</button>
+                <button class="delete-button" onclick="inputKey('delete')" ontouchstart="">删除</button>
+            </div>
+            <div id="result"></div>
+        </div>
+        <div id="summary" style="display: none;">
+            <div id="shareArea">
+                <h2>练习结果</h2>
+                <p>姓名：<span id="userNameDisplay"></span></p>
+                <p>答对题数：<span id="correctCount"></span></p>
+                <p>总用时：<span id="totalTime"></span></p>
+                <p>完成时间：<span id="completionTime"></span></p>
+            </div>
+            <p id="encouragement"></p>
+            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button type="button" onclick="restart()" ontouchstart="">重新开始</button>
+            <h3>题目分析</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>题目</th>
+                        <th>你的答案</th>
+                        <th>正确性</th>
+                        <th>正确答案</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTable"></tbody>
+            </table>
+        </div>
+        <div class="footer">
+            <p>作者：颜毅翔</p>
+            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+        </div>
+    </div>
+    <canvas id="shareCanvas" style="display: none;"></canvas>
+
+    <script>
+        let problems = [];
+        let currentIndex = 0;
+        let startTime;
+        let numQuestions;
+        let userName;
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const encouragements = [
+            '太棒了！你的努力让人佩服！',
+            '继续加油，你越来越厉害了！',
+            '哇，算得真快！再接再厉！',
+            '很棒的表现，保持下去！',
+            '你真是个珠心算小能手！',
+            '进步神速，继续挑战吧！'
+        ];
+
+        function inputKey(key) {
+            const input = document.getElementById('answer');
+            if (key === 'delete') {
+                input.value = ''; // 删除键清空输入框
+            } else {
+                input.value = input.value + key; // 追加数字
+            }
+        }
+
+        function formatDateTime(date) {
+            const offset = 8 * 60; // UTC+8
+            const localDate = new Date(date.getTime() + offset * 60 * 1000);
+            const year = localDate.getUTCFullYear();
+            const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getUTCDate()).padStart(2, '0');
+            const hours = String(localDate.getUTCHours()).padStart(2, '0');
+            const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function generateProblem() {
+            let num1, num2, num3, op1, op2, result;
+            do {
+                num1 = Math.floor(Math.random() * 9) + 1; // 1-9
+                num2 = Math.floor(Math.random() * 9) + 1;
+                num3 = Math.floor(Math.random() * 9) + 1;
+                op1 = Math.random() > 0.5 ? '+' : '-';
+                op2 = Math.random() > 0.5 ? '+' : '-';
+
+                // 计算中间结果，检查负数和两位数
+                let temp = op1 === '+' ? num1 + num2 : num1 - num2;
+                result = op2 === '+' ? temp + num3 : temp - num3;
+            } while (
+                num1 === 0 || num2 === 0 || num3 === 0 || // 避免0
+                result < 0 || result > 9 || // 结果必须是1-9
+                (op1 === '-' && num1 < num2) || // 第一步避免负数
+                (op2 === '-' && (op1 === '+' ? num1 + num2 : num1 - num2) < num3) || // 第二步避免负数
+                (op1 === '+' && num1 + num2 > 9) || // 第一步避免两位数
+                (op2 === '+' && (op1 === '+' ? num1 + num2 : num1 - num2) + num3 > 9) // 第二步避免两位数
+            );
+
+            // 练习时题目：加法无符号，减法带负号，数字用 span 包装
+            const practiceText = [
+                `<span>${num1}</span>`,
+                `<span>${op1 === '+' ? num2 : `-${num2}`}</span>`,
+                `<span>${op2 === '+' ? num3 : `-${num3}`}</span>`
+            ].join('<br>');
+
+            // 结果表格题目：显示加号和减号
+            const summaryText = [
+                num1,
+                op1 + num2,
+                op2 + num3
+            ].join(' ');
+
+            return { practiceText, summaryText, answer: result };
+        }
+
+        function startPractice() {
+            console.log('startPractice called'); // 调试日志
+            const userNameInput = document.getElementById('userName');
+            userNameInput.blur(); // 强制失去焦点，关闭虚拟键盘
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                document.getElementById('setupError').innerText = '请输入姓名！';
+                return;
+            }
+            document.getElementById('setupError').innerText = '';
+            numQuestions = parseInt(document.getElementById('numQuestions').value);
+            problems = [];
+            for (let i = 0; i < numQuestions; i++) {
+                problems.push(generateProblem());
+            }
+            currentIndex = 0;
+            startTime = new Date();
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('practice').style.display = 'block';
+            showProblem();
+        }
+
+        function showProblem() {
+            if (currentIndex >= problems.length) {
+                showSummary();
+                return;
+            }
+            document.getElementById('currentQuestion').innerText = currentIndex + 1;
+            document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
+            document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
+            document.getElementById('answer').value = '';
+            document.getElementById('result').innerText = '';
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const correctAnswer = parseInt(document.getElementById('problem').dataset.answer);
+
+            if (isNaN(userAnswer)) {
+                document.getElementById('result').innerText = '请输入答案！';
+                return;
+            }
+
+            problems[currentIndex].userAnswer = userAnswer;
+            problems[currentIndex].correct = userAnswer === correctAnswer;
+
+            currentIndex++;
+            showProblem();
+        }
+
+        function shareResult() {
+            const shareArea = document.getElementById('shareArea');
+            const canvas = document.getElementById('shareCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 设置画布尺寸，增加高度以容纳标题和作者信息
+            const width = shareArea.offsetWidth;
+            const height = shareArea.offsetHeight + 90; // 额外空间给标题和作者
+            canvas.width = width;
+            canvas.height = height;
+
+            // 绘制背景
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+
+            // 绘制文本
+            const xLeft = 20; // 靠左对齐的 x 坐标
+            let y = 30;
+            const lineHeight = 30;
+
+            // 标题：居中，加大加粗
+            ctx.font = '20px bold Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            const xCenter = width / 2;
+            ctx.fillText('珠心算练习结果', xCenter, y);
+            y += lineHeight;
+            ctx.fillText('（一位三笔）', xCenter, y);
+            y += lineHeight;
+
+            // 其他信息：靠左对齐
+            ctx.textAlign = 'left';
+            ctx.font = '16px bold Arial'; // 姓名加粗
+            ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.font = '16px Arial'; // 恢复正常字体
+            ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
+            y += 2 * lineHeight; // 作者信息与上方内容增加间距
+            // 作者：居中，浅色字体
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666666';
+            ctx.textAlign = 'center';
+            ctx.fillText('作者：颜毅翔', xCenter, y);
+
+            // 转换为图片
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'result.png', { type: 'image/png' });
+                if (navigator.share && isMobile) {
+                    navigator.share({
+                        files: [file],
+                        title: '珠心算练习结果',
+                        text: '看看我的珠心算练习成绩！'
+                    }).catch(err => console.error('分享失败:', err));
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'result.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
+        }
+
+        function showSummary() {
+            document.getElementById('practice').style.display = 'none';
+            document.getElementById('summary').style.display = 'block';
+
+            const endTime = new Date();
+            const timeTaken = Math.round((endTime - startTime) / 1000);
+            const correctCount = problems.filter(p => p.correct).length;
+            document.getElementById('userNameDisplay').innerText = userName;
+            document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
+            document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
+            document.getElementById('completionTime').innerText = formatDateTime(endTime);
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+
+            const table = document.getElementById('summaryTable');
+            table.innerHTML = '';
+            problems.forEach((problem, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${problem.summaryText}</td>
+                    <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
+                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
+                    <td>${problem.answer}</td>
+                `;
+                table.appendChild(row);
+            });
+        }
+
+        function restart() {
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('setup').style.display = 'block';
+            document.getElementById('userName').value = '';
+            problems = [];
+            currentIndex = 0;
+        }
+
+        window.onload = () => {
+            document.getElementById('setup').style.display = 'block';
+            // 检测设备并设置键盘显示
+            if (!isMobile) {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+            // 添加 Enter 键提交
+            document.getElementById('answer').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    console.log('Enter key pressed'); // 调试日志
+                    checkAnswer();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
